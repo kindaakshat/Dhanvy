@@ -1,0 +1,36 @@
+{
+  "name": "@trustlayer/api",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "prisma generate && tsc && node -e \"const fs=require('fs'); fs.mkdirSync('dist/prisma', {recursive:true}); if(fs.existsSync('prisma/seed.sqlite')){fs.copyFileSync('prisma/seed.sqlite', 'dist/prisma/seed.sqlite'); fs.copyFileSync('prisma/seed.sqlite', 'dist/seed.sqlite');}\"",
+    "start": "node dist/index.js",
+    "seed": "tsx prisma/seed.ts",
+    "evaluate": "tsx src/tests/evaluation/harness.ts",
+    "test:identity": "tsx src/tests/test_agent_identity.ts",
+    "test:gateway": "tsx src/tests/test_payment_gateway.ts",
+    "test:audit": "tsx src/tests/test_production_readiness.ts",
+    "test:auth": "tsx src/tests/test_auth_suite.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "prisma": "^5.20.0",
+    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5.6.2"
+  }
+}

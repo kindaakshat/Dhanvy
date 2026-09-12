@@ -1,0 +1,18 @@
+{
+  "name": "trustlayer",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r run dev",
+    "build": "pnpm -r run build",
+    "evaluate": "pnpm --filter @trustlayer/api evaluate"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "unrs-resolver",
+      "@swc/core"
+    ]
+  }
+}

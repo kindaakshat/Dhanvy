@@ -1,0 +1,125 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Monaco, monospace;
+}
+
+:root {
+  --bg-main: #ffffff;
+  --bg-subtle: #faf8fd;
+  --bg-card: rgba(255, 255, 255, 0.72);
+  --bg-card-hover: rgba(255, 255, 255, 0.85);
+  --bg-sidebar: #0a0f1d;
+  --border-glass: rgba(255, 255, 255, 0.45);
+  --border-glass-subtle: rgba(226, 232, 240, 0.6);
+  --border-subtle: #e2e8f0;
+  --border-focus: #cbd5e1;
+  --text-primary: #0a0f1d;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --accent-navy: #0f172a;
+  --accent-blue: #2563eb;
+  --accent-indigo: #6366f1;
+  --accent-purple: #8b5cf6;
+  --accent-emerald: #059669;
+  --accent-rose: #e11d48;
+  --accent-amber: #d97706;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+  letter-spacing: -0.011em;
+}
+
+/* Liquid Glass Utilities */
+.liquid-mesh-hero {
+  background-color: #faf8fd;
+  background-image:
+    radial-gradient(at 15% 15%, rgba(139, 92, 246, 0.16) 0px, transparent 55%),
+    radial-gradient(at 85% 18%, rgba(99, 102, 241, 0.18) 0px, transparent 50%),
+    radial-gradient(at 50% 45%, rgba(59, 130, 246, 0.12) 0px, transparent 60%),
+    radial-gradient(at 80% 85%, rgba(192, 132, 252, 0.14) 0px, transparent 55%),
+    radial-gradient(at 18% 85%, rgba(147, 197, 253, 0.16) 0px, transparent 50%);
+}
+
+.liquid-glass-card {
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 8px 32px 0 rgba(80, 60, 200, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.liquid-glass-nav {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 24px 0 rgba(80, 60, 200, 0.04);
+}
+
+.liquid-glass-button {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-button:hover {
+  box-shadow: 0 0 24px rgba(139, 92, 246, 0.42), 0 6px 20px rgba(99, 102, 241, 0.35);
+  transform: translateY(-1px);
+}
+
+.liquid-glass-secondary {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 14px 0 rgba(80, 60, 200, 0.04);
+  transition: all 0.2s ease;
+}
+
+.liquid-glass-secondary:hover {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 20px 0 rgba(80, 60, 200, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Tabular numbers for financial precision */
+.font-mono-tabular {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}

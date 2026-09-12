@@ -1,0 +1,186 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  agents    Agent[]
+}
+
+model Agent {
+  id           String            @id @default(uuid())
+  name         String            @unique
+  description  String?
+  ownerId      String
+  owner        User              @relation(fields: [ownerId], references: [id])
+  status       String            @default("ACTIVE")
+  trustScore   Float             @default(100.0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  capabilities AgentCapability[]
+  mandates     Mandate[]
+  transactions Transaction[]
+  trustEvents  TrustEvent[]
+  auditEvents  AuditEvent[]
+}
+
+model AgentCapability {
+  id          String   @id @default(uuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  capability  String
+  isAllowed   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([agentId, capability])
+}
+
+model Mandate {
+  id                String        @id @default(uuid())
+  userId            String?       @default("usr_demo_01")
+  agentId           String
+  agent             Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  name              String
+  merchant          String
+  allowedMerchants  String?
+  category          String
+  allowedCategories String?
+  productPattern    String?
+  maxAmount         Int
+  dailyLimit        Int
+  spentToday        Int           @default(0)
+  currency          String        @default("INR")
+  validFrom         DateTime      @default(now())
+  validUntil        DateTime
+  approvalThreshold Int?
+  approvalRules     String?       // JSON string: { requiresApprovalAbove, requireForNewMerchants, requireForHighRiskMerchants, minTrustScore, requireForFirstTransaction, requireForCategoryAnomaly, requireForSpendingSpike }
+  status            String        @default("ACTIVE")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  transactions      Transaction[]
+}
+
+model Intent {
+  id              String        @id @default(uuid())
+  agentId         String?
+  rawPrompt       String
+  merchant        String?
+  category        String?
+  product         String?
+  maxAmount       Int?
+  currency        String        @default("INR")
+  validityMinutes Int?
+  parserType      String        @default("RULE_BASED")
+  parserVersion   String        @default("1.0.0")
+  structuredData  String?
+  createdAt       DateTime      @default(now())
+  transactions    Transaction[]
+}
+
+model Transaction {
+  id                 String       @id @default(uuid())
+  idempotencyKey     String       @unique
+  agentId            String
+  agent              Agent        @relation(fields: [agentId], references: [id])
+  mandateId          String?
+  mandate            Mandate?     @relation(fields: [mandateId], references: [id])
+  intentId           String?
+  intent             Intent?      @relation(fields: [intentId], references: [id])
+  merchant           String
+  merchantId         String?
+  category           String
+  product            String
+  instruction        String?
+  amount             Int
+  currency           String       @default("INR")
+  decision           String
+  riskScore          Int
+  riskReasons        String
+  decisionReasons    String       // JSON array of machine codes
+  status             String       @default("CREATED") // CREATED, VALIDATING, PENDING_HUMAN_APPROVAL, AUTHORIZED, PROCESSING, SUCCESS, FAILED, BLOCKED, REJECTED, REVERSED, COMPLETED
+  attempts           Int          @default(1)
+  duplicateCount     Int          @default(0)
+  idempotentResponse String?      // Serialized JSON cache of canonical decision
+  stateHistory       String?      // JSON array of state transitions
+  lastAttemptAt      DateTime     @default(now())
+  razorpayOrderId    String?
+  razorpayPaymentId  String?
+  razorpayStatus     String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  auditEvents        AuditEvent[]
+  approval           Approval?
+  dispute            Dispute?
+}
+
+model AuditEvent {
+  id             String       @id @default(uuid())
+  sequenceNumber Int          @default(autoincrement())
+  eventType      String
+  actor          String
+  agentId        String?
+  agent          Agent?       @relation(fields: [agentId], references: [id])
+  transactionId  String?
+  transaction    Transaction? @relation(fields: [transactionId], references: [id])
+  timestamp      DateTime     @default(now())
+  eventData      String
+  previousHash   String
+  eventHash      String
+
+  @@unique([sequenceNumber])
+}
+
+model TrustEvent {
+  id            String   @id @default(uuid())
+  agentId       String
+  agent         Agent    @relation(fields: [agentId], references: [id])
+  transactionId String?
+  reason        String
+  scoreDelta    Float
+  previousScore Float
+  newScore      Float
+  createdAt     DateTime @default(now())
+}
+
+model Approval {
+  id              String      @id @default(uuid())
+  transactionId   String      @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id])
+  agentId         String
+  amount          Int
+  merchant        String
+  status          String      @default("PENDING")
+  reason          String
+  triggerRule     String?     // e.g. AMOUNT_EXCEEDS_THRESHOLD, NEW_MERCHANT, HIGH_RISK_MERCHANT, LOW_AGENT_TRUST, FIRST_TRANSACTION, SPENDING_ANOMALY
+  riskScore       Int?        @default(50)
+  riskIndicators  String?     // JSON array of risk indicators
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  decision        String?     // APPROVED, REJECTED
+  decisionReason  String?     // Approver notes
+  metadata        String?     // JSON string containing user, agent history, etc.
+  createdAt       DateTime    @default(now())
+}
+
+model Dispute {
+  id            String      @id @default(uuid())
+  transactionId String      @unique
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  agentId       String
+  amount        Int
+  reason        String
+  status        String      @default("OPEN")
+  resolution    String?
+  createdAt     DateTime    @default(now())
+  resolvedAt    DateTime?
+}

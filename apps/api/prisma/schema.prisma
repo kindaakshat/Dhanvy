@@ -1,0 +1,203 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String        @id @default(uuid())
+  email            String        @unique
+  name             String
+  passwordHash     String?
+  role             String        @default("USER")
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  agents           Agent[]
+  mandates         Mandate[]
+  sessions         Session[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Agent {
+  id           String            @id @default(uuid())
+  name         String            @unique
+  description  String?
+  ownerId      String
+  owner        User              @relation(fields: [ownerId], references: [id])
+  status       String            @default("ACTIVE") // ACTIVE, SUSPENDED, REVIEW_REQUIRED
+  trustScore   Float             @default(100.0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  capabilities AgentCapability[]
+  mandates     Mandate[]
+  transactions Transaction[]
+  trustEvents  TrustEvent[]
+  auditEvents  AuditEvent[]
+}
+
+model AgentCapability {
+  id          String   @id @default(uuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  capability  String   // e.g. PURCHASE_ELECTRONICS, CREATE_PAYMENT_ORDER, USE_RAZORPAY
+  isAllowed   Boolean  @default(true) // true = allowed, false = forbidden
+  createdAt   DateTime @default(now())
+
+  @@unique([agentId, capability])
+}
+
+model Mandate {
+  id                String        @id @default(uuid())
+  userId            String?       @default("usr_demo_01")
+  user              User?         @relation(fields: [userId], references: [id])
+  agentId           String
+  agent             Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  name              String
+  merchant          String        // primary or comma-separated e.g. Amazon, Uber, Swiggy
+  allowedMerchants  String?       // JSON array or comma-separated e.g. ["Amazon", "Uber"]
+  category          String        // primary or comma-separated e.g. Electronics, Travel
+  allowedCategories String?       // JSON array or comma-separated e.g. ["Travel Tickets", "Office Supplies"]
+  productPattern    String?       // e.g. Keyboard, Laptop
+  maxAmount         Int           // in paise (e.g. 500000 = ₹5,000)
+  dailyLimit        Int           // in paise
+  spentToday        Int           @default(0)
+  currency          String        @default("INR")
+  validFrom         DateTime      @default(now())
+  validUntil        DateTime
+  approvalThreshold Int?          // in paise
+  approvalRules     String?       // JSON string: { requiresApprovalAbove, requireForNewMerchants, requireForHighRiskMerchants, minTrustScore, requireForFirstTransaction, requireForCategoryAnomaly, requireForSpendingSpike }
+  status            String        @default("ACTIVE") // ACTIVE, REVOKED, EXPIRED
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  transactions      Transaction[]
+}
+
+model Intent {
+  id              String        @id @default(uuid())
+  agentId         String?
+  rawPrompt       String
+  merchant        String?
+  category        String?
+  product         String?
+  maxAmount       Int?          // in paise
+  currency        String        @default("INR")
+  validityMinutes Int?
+  parserType      String        @default("RULE_BASED")
+  parserVersion   String        @default("1.0.0")
+  structuredData  String?       // JSON
+  createdAt       DateTime      @default(now())
+  transactions    Transaction[]
+}
+
+model Transaction {
+  id                String       @id @default(uuid())
+  idempotencyKey    String       @unique
+  agentId           String
+  agent             Agent        @relation(fields: [agentId], references: [id])
+  mandateId         String?
+  mandate           Mandate?     @relation(fields: [mandateId], references: [id])
+  intentId          String?
+  intent            Intent?      @relation(fields: [intentId], references: [id])
+  merchant          String
+  merchantId        String?
+  category          String
+  product           String
+  instruction       String?
+  amount            Int          // in paise
+  currency          String       @default("INR")
+  decision          String       // APPROVED, BLOCKED, REVIEW
+  riskScore         Int          // 0-100
+  riskReasons       String       // JSON array
+  decisionReasons    String       // JSON array of machine codes
+  status             String       @default("CREATED") // CREATED, VALIDATING, PENDING_HUMAN_APPROVAL, AUTHORIZED, PROCESSING, SUCCESS, FAILED, BLOCKED, REJECTED, REVERSED, COMPLETED
+  attempts           Int          @default(1)
+  duplicateCount     Int          @default(0)
+  idempotentResponse String?      // Serialized JSON cache of canonical decision
+  stateHistory       String?      // JSON array of state transitions
+  lastAttemptAt      DateTime     @default(now())
+  razorpayOrderId    String?
+  razorpayPaymentId  String?
+  razorpayStatus     String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  auditEvents       AuditEvent[]
+  approval          Approval?
+  dispute           Dispute?
+}
+
+model AuditEvent {
+  id             String       @id @default(uuid())
+  sequenceNumber Int          @default(0)
+  eventType      String       // INTENT_PARSED, CAPABILITY_CHECKED, etc.
+  actor          String
+  agentId        String?
+  agent          Agent?       @relation(fields: [agentId], references: [id])
+  transactionId  String?
+  transaction    Transaction? @relation(fields: [transactionId], references: [id])
+  timestamp      DateTime     @default(now())
+  eventData      String       // JSON
+  previousHash   String
+  eventHash      String       // SHA-256
+
+  @@unique([sequenceNumber])
+}
+
+model TrustEvent {
+  id            String   @id @default(uuid())
+  agentId       String
+  agent         Agent    @relation(fields: [agentId], references: [id])
+  transactionId String?
+  reason        String   // SUCCESS, MANDATE_VIOLATION, INTENT_DRIFT, etc.
+  scoreDelta    Float
+  previousScore Float
+  newScore      Float
+  createdAt     DateTime @default(now())
+}
+
+model Approval {
+  id              String      @id @default(uuid())
+  transactionId   String      @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id])
+  agentId         String
+  amount          Int
+  merchant        String
+  status          String      @default("PENDING") // PENDING, APPROVED, REJECTED
+  reason          String
+  triggerRule     String?     // e.g. AMOUNT_EXCEEDS_THRESHOLD, NEW_MERCHANT, HIGH_RISK_MERCHANT, LOW_AGENT_TRUST, FIRST_TRANSACTION, SPENDING_ANOMALY
+  riskScore       Int?        @default(50)
+  riskIndicators  String?     // JSON array of risk indicators
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  decision        String?     // APPROVED, REJECTED
+  decisionReason  String?     // Approver notes
+  metadata        String?     // JSON string containing user, agent history, etc.
+  createdAt       DateTime    @default(now())
+}
+
+model Dispute {
+  id            String      @id @default(uuid())
+  transactionId String      @unique
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  agentId       String
+  userId        String      @default("usr_demo_01")
+  amount        Int         // in paise
+  reason        String
+  status        String      @default("OPEN") // OPEN, REVERSAL_REQUESTED, REVERSED, RESOLVED_REFUNDED, RESOLVED_REJECTED
+  resolution    String?
+  reversalId    String?
+  createdAt     DateTime    @default(now())
+  resolvedAt    DateTime?
+}
